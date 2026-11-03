@@ -132,6 +132,87 @@ header h1{font-size:clamp(28px,6vw,42px);line-height:1.1}
 .results button:hover{border-color:var(--tang)}
 .imgprev{max-width:100%;border:1px solid var(--line);border-radius:8px}
 
+/* ---------- header / nav (shared) ---------- */
+header.top .tt{min-width:0}
+.topright{display:flex;align-items:center;gap:14px}
+.count{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:baseline;gap:0 4px;max-width:120px}
+.count .lbl{width:100%;text-align:right}
+.count .unit{font-size:13px}
+.tabs svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;vertical-align:-4px;margin-right:6px}
+.narrow-only{display:none!important}
+.editsw span{white-space:nowrap}
+.more{display:flex;flex-direction:column;gap:10px;max-width:560px}
+.morebtn{all:unset;cursor:pointer;display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:16px;font-weight:700}
+.morebtn small{display:block;font-weight:400;font-size:13px;color:var(--muted)}
+.morebtn svg{width:24px;height:24px;flex:0 0 24px;fill:none;stroke:var(--tang);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.swipehint{display:none}
+
+/* ---------- phone layout ---------- */
+@media (max-width:720px){
+  body{font-size:15.5px;padding-top:0;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:12;background:var(--paper)}
+  .wrap{gap:12px}
+  .wide-only{display:none!important}
+  .narrow-only{display:flex!important}
+  header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--paper);flex-wrap:nowrap;align-items:center;
+    padding-block:10px 8px;margin:0 calc(-1*max(16px,env(safe-area-inset-left,0px))) 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line)}
+  header.top h1{font-size:21px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .facts{font-size:12px;margin-top:0;gap:0 8px;flex-wrap:nowrap;overflow:hidden;white-space:nowrap}
+  .facts span:nth-child(n+3){display:none}
+  .topright{gap:10px}
+  .count{flex-direction:row;align-items:baseline;gap:2px}
+  .count .lbl{display:none}
+  .count b{font-size:22px}
+  .editsw{border:1px solid var(--line);border-radius:99px;padding:5px 10px;background:var(--card);font-size:13px;gap:6px}
+  .editsw input{width:16px;height:16px}
+  /* bottom tab bar */
+  nav.bar{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:10;background:var(--card);border-top:1px solid var(--line);border-bottom:0;
+    padding:4px max(8px,env(safe-area-inset-right,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));justify-content:center}
+  nav.bar .tabs{background:transparent;padding:0;width:100%;justify-content:space-around;overflow:visible;gap:0}
+  nav.bar .tabs button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 4px;font-size:11px;font-weight:500;color:var(--muted);border-radius:10px}
+  nav.bar .tabs button svg{width:24px;height:24px;margin:0}
+  nav.bar .tabs button[aria-pressed="true"]{background:transparent;color:var(--tang);font-weight:700}
+  /* banner */
+  .banner{padding:10px 12px;gap:6px}
+  .banner .msg{font-size:13px;flex-basis:100%}
+  .banner .btn{padding:6px 11px;font-size:13px}
+  /* day view */
+  .daychips{position:sticky;top:calc(env(safe-area-inset-top,0px) + 58px);z-index:8;background:var(--paper);padding:6px 0;margin:0 calc(-1*max(16px,env(safe-area-inset-left,0px)));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:16px;scrollbar-width:none}
+  .daychips::-webkit-scrollbar{display:none}
+  .daychips button{padding:6px 12px;font-size:14px}
+  .dayhead{padding-bottom:8px}
+  .dayhead h2{font-size:22px}
+  .stay{align-items:flex-start;text-align:left;font-size:13px}
+  .lanes{gap:22px;margin-top:10px}
+  .dv .card{padding:11px 12px;font-size:15px}
+  .card .tm{font-size:12.5px}
+  .edit .grip{flex-basis:22px;background-size:8px 8px;min-height:30px}
+  .addbtn{padding:10px;font-size:14px}
+  .swipehint{display:block;text-align:center;font-size:12px;color:var(--muted);margin-top:14px}
+  /* board: one day per screen, snap */
+  .board{scroll-snap-type:x mandatory;margin:0 calc(-1*max(16px,env(safe-area-inset-left,0px)));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:16px;scroll-padding-left:max(16px,env(safe-area-inset-left,0px))}
+  .col{flex-basis:84vw}
+  .board .card{font-size:14.5px;padding:9px 10px}
+  /* map */
+  #map{height:calc(100dvh - 250px);min-height:300px}
+  .mapwrap{gap:10px}
+  /* panels & tables */
+  .panel{padding:12px}
+  .kpis{grid-template-columns:1fr 1fr;gap:8px}
+  .kpis .kpi:first-child{grid-column:1/-1}
+  .big{font-size:24px}
+  .tbl{font-size:13.5px}
+  /* dialogs become bottom sheets */
+  dialog{width:100%;max-width:100%;margin:auto 0 0;border-radius:18px 18px 0 0;max-height:92dvh;border-bottom:0}
+  .dlg{padding:18px 16px 0}
+  .dlg .acts{position:sticky;bottom:0;background:var(--card);margin:6px -16px 0;padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+  .dlg .acts .btn{padding:10px 16px;font-size:15px}
+  input,select,textarea{font-size:16px}
+  .chip{padding:5px 12px;font-size:14px}
+  .toast{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+  footer{display:none}
+}
+
 /* day view */
 .daychips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
 .daychips button{cursor:pointer;border:1px solid var(--line);background:var(--card);border-radius:99px;padding:4px 12px;font-size:14px;white-space:nowrap}
@@ -190,21 +271,29 @@ footer{font-size:12px;color:var(--muted)}
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <div><h1 id="title">濟州島家族旅行</h1><div class="facts" id="facts"></div></div>
-    <div class="count"><div class="muted small">距離出發</div><b id="cd">–</b> <span class="muted">天</span></div>
+  <header class="top">
+    <div class="tt"><h1 id="title">濟州島家族旅行</h1><div class="facts" id="facts"></div></div>
+    <div class="topright">
+      <div class="count"><span class="lbl muted small">距離出發</span><b id="cd">–</b><span class="muted unit">天</span></div>
+      <label class="editsw" id="editsw"><input type="checkbox" id="editmode"><span>編輯</span></label>
+    </div>
   </header>
   <div id="banner"></div>
-  <div class="bar">
-    <div class="tabs" role="group" aria-label="切換畫面">
-      <button data-view="board">總覽看板</button><button data-view="day">每日行程</button><button data-view="map">地圖</button><button data-view="cost">費用</button><button data-view="todo">待辦</button><button data-view="log">修改紀錄</button>
+  <nav class="bar" id="nav" aria-label="切換畫面">
+    <div class="tabs">
+      <button data-view="day"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4M8 14h3M8 17h6"/></svg><span>每日行程</span></button>
+      <button data-view="board"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/></svg><span>總覽看板</span></button>
+      <button data-view="map"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-6.2-6.5-11.2a6.5 6.5 0 0 1 13 0C18.5 14.8 12 21 12 21z"/><circle cx="12" cy="9.8" r="2.4"/></svg><span>地圖</span></button>
+      <button data-view="cost"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 9l1.6 6.5L12 10l1.9 5.5L15.5 9M8 12h8"/></svg><span>費用</span></button>
+      <button data-view="todo" class="wide-only"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg><span>待辦</span></button>
+      <button data-view="log" class="wide-only"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>修改紀錄</span></button>
+      <button data-view="more" class="narrow-only"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></svg><span>更多</span></button>
     </div>
-    <div class="baracts">
+    <div class="baracts wide-only">
       <button class="btn ghost" id="btn-img">行程長圖</button>
       <button class="btn ghost" id="btn-xlsx">匯出 Excel</button>
-      <label class="editsw" id="editsw"><input type="checkbox" id="editmode"> 編輯模式</label>
     </div>
-  </div>
+  </nav>
   <main id="main"><p class="muted">載入中…</p></main>
   <footer id="footer"></footer>
 </div>
@@ -311,7 +400,8 @@ function render(){
   $("#title").textContent=data.trip.title;
   $("#facts").replaceChildren(h("span",{style:"font-family:var(--f-mono)"},data.trip.start.replaceAll("-",".")+" – "+data.trip.end.slice(5).replace("-",".")),...(data.trip.facts||[]).map(f=>h("span",{},f)));
   $("#footer").textContent=data.trip.footer||"";
-  document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.view===S.view)));
+  document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.view===S.view||(b.dataset.view==="more"&&["todo","log"].includes(S.view)))));
+  ls.set("jeju-view",JSON.stringify({view:S.view,day:S.day}));
   const sw=$("#editmode");sw.checked=S.edit;sw.disabled=!!S.alt;
   document.body.classList.toggle("edit",editable());
   renderBanner(D);
@@ -323,6 +413,7 @@ function render(){
   else if(S.view==="map"){main.append(renderMapView(data));drawMap(data)}
   else if(S.view==="cost")main.append(renderCost(data));
   else if(S.view==="todo")main.append(renderTodo(data));
+  else if(S.view==="more")main.append(renderMore(data));
   else main.append(renderLog());
   const b=main.querySelector(".board");if(b)b.scrollLeft=keepX;
   setupSortable();
@@ -409,8 +500,26 @@ function renderDayView(data,mark){
     editable()&&d.decided?h("div",{},h("button",{class:"btn ghost",onclick:()=>{commit(dd=>undecideDay(dayOf(dd,d.id)));toast("已取消定案")}},"取消定案，回到並排比較")):null));
   if(editable())out.append(h("div",{style:"margin-top:10px"},h("button",{class:"btn ghost",onclick:()=>addLane(d.id)},d.lanes.some(l=>l.option)?"＋ 新增一個方案":"＋ 新增分組／方案")));
   if((d.notes||[]).length)out.append(h("section",{class:"block"},h("h3",{},"待討論"),h("ul",{class:"flags"},d.notes.map(n=>h("li",{},n)))));
+  setTimeout(()=>{const t=document.querySelector(`.daychips button[aria-pressed="true"]`);if(t)t.parentNode.scrollLeft=t.offsetLeft-t.parentNode.clientWidth/2+t.offsetWidth/2},0);
+  if(!editable())setTimeout(()=>out.append(h("div",{class:"swipehint"},"← 左右滑動換一天 →")),0);
   out.append(h("section",{class:"block"},h("h3",{},"口袋名單",h("span",{class:"small muted",style:"font-family:var(--f-body);font-weight:400"},"　還沒排進行程的備選")),h("div",{class:"dv"},listEl(data,keyOf(d.id,"_pocket"),mark,true))));
   return out;
+}
+const ICON={todo:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/>',log:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  img:'<rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/>',xlsx:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/>',
+  share:'<circle cx="17" cy="5.5" r="2.5"/><circle cx="7" cy="12" r="2.5"/><circle cx="17" cy="18.5" r="2.5"/><path d="M9.2 10.8l5.6-3.6M9.2 13.2l5.6 3.6"/>',save:'<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>'};
+function svgIcon(k){const s=document.createElementNS("http://www.w3.org/2000/svg","svg");s.setAttribute("viewBox","0 0 24 24");s.innerHTML=ICON[k];return s}
+function renderMore(data){
+  const left=(data.todos||[]).filter(t=>!t.done).length;
+  const row=(k,t,sub,fn)=>h("button",{class:"morebtn",onclick:fn},svgIcon(k),h("span",{},t,sub?h("small",{},sub):null));
+  return h("div",{class:"more"},
+    row("todo","待辦清單",left?`還有 ${left} 項沒完成`:"都完成了",()=>{S.view="todo";render();scrollTo({top:0})}),
+    row("log","修改紀錄","每次存檔改了什麼，也能叫回舊版本",()=>{S.view="log";render();scrollTo({top:0})}),
+    row("img","行程長圖","整趟行程一張圖，傳到 LINE 給長輩看",()=>makeImage().catch(()=>toast("產生圖片失敗"))),
+    row("xlsx","匯出 Excel","跟原本總表一樣的格式",()=>{try{exportXlsx()}catch(e){toast("匯出失敗")}}),
+    S.draft&&!S.alt?row("share","分享我的修改","產生連結貼到 LINE",openShare):null,
+    S.draft&&!S.alt?row("save","存到 GitHub","變成正式版本（需要 token）",openSave):null,
+    h("p",{class:"small muted",style:"margin:4px 2px"},data.trip.footer||""));
 }
 function renderTodo(data){
   const p=h("div",{class:"panel"});
@@ -1034,8 +1143,16 @@ async function makeImage(){
 /* ================= boot ================= */
 $("#btn-xlsx").addEventListener("click",()=>{try{exportXlsx()}catch(e){console.error(e);toast("匯出失敗："+e.message)}});
 $("#btn-img").addEventListener("click",()=>{makeImage().catch(e=>{console.error(e);toast("產生圖片失敗")})});
-document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>{S.view=b.dataset.view;render()}));
+document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>{S.view=b.dataset.view;render();scrollTo({top:0})}));
 $("#editmode").addEventListener("change",e=>{S.edit=e.target.checked;render()});
+/* swipe left/right on the day view to change day (phone) */
+(()=>{let sx=0,sy=0,ok=false;const main=$("#main");
+  main.addEventListener("touchstart",e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY;
+    ok=S.view==="day"&&!editable()&&e.touches.length===1&&!e.target.closest(".daychips,.leaflet-container,.tblwrap,input,textarea,select")},{passive:true});
+  main.addEventListener("touchend",e=>{if(!ok)return;ok=false;const t=e.changedTouches[0];const dx=t.clientX-sx,dy=t.clientY-sy;
+    if(Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)*0.6)return;const days=shown().days;const i=days.findIndex(d=>d.id===S.day);
+    const j=dx<0?i+1:i-1;if(j<0||j>=days.length)return;S.day=days[j].id;render();scrollTo({top:0})},{passive:true});
+})();
 window.addEventListener("hashchange",()=>{const p=readProposal();if(p){S.alt=p;render()}});
 (async function(){
   try{const r=await fetch("trip.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;S.pub=await r.json()}
@@ -1044,6 +1161,12 @@ window.addEventListener("hashchange",()=>{const p=readProposal();if(p){S.alt=p;r
   try{const d=JSON.parse(ls.get(LS_DRAFT)||"null");if(d&&d.data&&d.data.days){S.draft=d.data;S.draftBase=d.base||""}}catch(e){}
   if(S.draft&&JSON.stringify(S.draft)===JSON.stringify(S.pub)){S.draft=null;saveDraft()}
   S.alt=readProposal();
+  // first view: remembered one, else phone → day view (today's date during the trip), desktop → board
+  try{const sv=JSON.parse(ls.get("jeju-view")||"null");if(sv&&sv.view){S.view=sv.view;S.day=sv.day}}catch(e){}
+  if(!ls.get("jeju-view")&&matchMedia("(max-width:720px)").matches)S.view="day";
+  {const now=new Date();const md=String(now.getMonth()+1).padStart(2,"0")+"/"+String(now.getDate()).padStart(2,"0");
+   const today=shown().days.find(d=>d.date===md);if(today&&now.getFullYear()===+S.pub.trip.start.slice(0,4)){S.day=today.id;if(S.view!=="map")S.view="day"}}
+  if(!matchMedia("(max-width:720px)").matches&&S.view==="more")S.view="board";
   const dep=new Date(S.pub.trip.start+"T00:00:00");const now=new Date();const n=Math.ceil((dep-new Date(now.getFullYear(),now.getMonth(),now.getDate()))/864e5);
   $("#cd").textContent=n>0?n:(n>-6?"出發中":"已回家");
   render();
