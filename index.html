@@ -461,11 +461,12 @@ function openItem(id,addKey){
   const sel=h("select",{id:"f-list"},allKeys(data).map(k=>h("option",{value:k},listLabel(data,k))));sel.value=curKey;
   const gap=h("input",{type:"checkbox",id:"f-gap"});gap.checked=!!it.gap;
   const pk=locPicker(it.lat!=null?{lat:it.lat,lng:it.lng}:null,()=>v("f-map")||v("f-name"),!!it.approx);
+  const tf=timeField(it.time||""),pf=priceField(it.price||"",BUD(data).rate);
   openDlg(h("h3",{},loc?"修改項目":"新增項目"),
-    h("div",{class:"two"},field("時間","f-time",it.time,{ph:"例如 13:20–15:00"}),h("label",{},"放在",sel)),
     field("名稱","f-name",it.name,{ph:"例如：道頭峰"}),
+    h("label",{},"放在",sel),tf.el,
     field("說明","f-desc",it.desc,{area:1,ph:"要做什麼、車程、注意事項"}),
-    h("div",{class:"two"},field("費用","f-price",it.price,{ph:"例如 約 NT$161（₩7,000）"}),field("地圖搜尋字（韓文最準）","f-map",it.map,{ph:"例如 산굼부리"})),
+    pf.el,field("地圖搜尋字（選填，韓文最準）","f-map",it.map,{ph:"例如 산굼부리"}),
     field("提議人（選填）","f-by",it.by||(loc?"":ls.get(LS_NAME)||""),{ph:"誰想去的"}),
     pk.el,
     h("label",{class:"check"},gap,"標成「待補／還沒決定」"),
@@ -473,7 +474,7 @@ function openItem(id,addKey){
       h("button",{class:"btn ghost",value:"cancel"},"取消"),
       h("button",{type:"button",class:"btn tang",onclick:()=>{
         const name=v("f-name");if(!name){document.getElementById("f-name").focus();return}
-        const body={time:v("f-time"),name,desc:v("f-desc"),price:v("f-price"),map:v("f-map")};
+        const body={time:tf.get(),name,desc:v("f-desc"),price:pf.get(),map:v("f-map")};
         const by=v("f-by");if(by&&!loc)ls.set(LS_NAME,by);
         const pos=pk.get();const to=sel.value;dlg.close();
         const apply=item=>{if(by)item.by=by;else delete item.by;
@@ -486,7 +487,8 @@ function openItem(id,addKey){
           else{item={id:newId("n"),...body};apply(item);const l=getList(d,to);const t=parseTime(item.time);
             const at=t?l.findIndex(x=>{const u=parseTime(x.time);return u&&u.s>t.s}):-1;if(at>=0)l.splice(at,0,item);else l.push(item)}});
       }},"儲存")));
-  setTimeout(()=>document.getElementById(loc?"f-time":"f-name").focus(),30);
+  const nm=document.getElementById("f-name");nm.addEventListener("change",()=>{if(!pk.get()&&nm.value.trim())pk.search()});
+  if(!loc)setTimeout(()=>nm.focus(),30);
 }
 function openDay(did){
   const d=dayOf(shown(),did);
@@ -668,7 +670,7 @@ function renderLog(){
 /* ================= time / money helpers ================= */
 function parseTime(s){const m=[...(s||"").matchAll(/(\d{1,2}):(\d{2})/g)].map(x=>+x[1]*60+ +x[2]);if(!m.length)return null;return{s:m[0],e:m.length>1?m[1]:null}}
 function fmtMin(n){if(n<60)return n+" 分";const hh=Math.floor(n/60),mm=n%60;return hh+" 小時"+(mm?" "+mm+" 分":"")}
-function parsePrice(s){s=s||"";const t=s.replace(/停車[^；;）)]*/g,"");const m=t.match(/₩\s*([\d,]+)(?:\s*[–~-]\s*₩?\s*([\d,]+))?/);
+function parsePrice(s){s=s||"";const t=s.replace(/(停車|每車)[^；;）)]*/g,"");const m=t.match(/₩\s*([\d,]+)(?:\s*[–~-]\s*₩?\s*([\d,]+))?/);
   if(m){const a=+m[1].replace(/,/g,""),b=m[2]?+m[2].replace(/,/g,""):a;return{min:a,max:b}}
   if(/無入場費|免費|免門票/.test(s))return{min:0,max:0};return null}
 const NT=n=>"NT$"+Math.round(n).toLocaleString("en-US"),KW=n=>"₩"+Math.round(n).toLocaleString("en-US");
@@ -777,7 +779,45 @@ function locPicker(init,getQuery,approx){
   const el=h("div",{class:"picker"},h("div",{class:"row"},h("b",{class:"small"},"位置"),status),
     h("div",{class:"row"},h("button",{type:"button",class:"chip",onclick:openMap},"在地圖上點選"),h("button",{type:"button",class:"chip",onclick:search},"用名字搜尋"),h("button",{type:"button",class:"chip",onclick:()=>{pos=null;upd()}},"清除")),
     res,h("div",{class:"row"},paste,h("button",{type:"button",class:"chip",onclick:readPaste},"讀取網址")),mapBox);
-  upd();return{el,get:()=>pos};
+  upd();return{el,get:()=>pos,search};
+}
+
+/* ================= time & price pickers ================= */
+function timeField(cur){
+  const t=parseTime(cur),KWS=["早上","中午","下午","傍晚","晚上","之後","全天"];
+  const hm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+  const s=h("input",{type:"time",id:"f-ts",step:"300"}),e=h("input",{type:"time",id:"f-te",step:"300"});
+  const loose=h("input",{type:"checkbox",id:"f-tloose"}),kw=h("select",{id:"f-tkw"},KWS.map(k=>h("option",{},k)));
+  if(t){s.value=hm(t.s);if(t.e!=null)e.value=hm(t.e)}else if(cur){loose.checked=true;kw.value=KWS.find(k=>cur.includes(k))||"之後"}
+  let dirty=!cur;
+  const fixed=h("div",{class:"two"},h("label",{},"開始",s),h("label",{},"結束（選填）",e)),lw=h("label",{},"大概什麼時候",kw);
+  const sync=()=>{fixed.hidden=loose.checked;lw.hidden=!loose.checked};
+  [s,e,kw].forEach(x=>{x.addEventListener("input",()=>dirty=true);x.addEventListener("change",()=>dirty=true)});
+  loose.addEventListener("change",()=>{dirty=true;sync()});sync();
+  const el=h("div",{class:"picker"},h("div",{class:"row"},h("b",{class:"small"},"時間"),cur?h("span",{class:"small muted"},"目前："+cur):null),fixed,h("label",{class:"check"},loose,"沒有固定時間"),lw);
+  return{el,get:()=>{if(!dirty)return cur;if(loose.checked)return kw.value;if(!s.value)return "";return s.value+(e.value&&e.value>s.value?"–"+e.value:"")}};
+}
+function priceField(cur,rate){
+  const p=parsePrice(cur);const label=(cur||"").split(/約|NT\$|₩|免費|無入場費|免門票|入場免費|價格待確認|每車/)[0].replace(/[｜|：:；;，,]\s*$/,"").trim();
+  const kind=h("select",{id:"f-pk"},[["blank","不填"],["none","不用錢"],["pp","每人"],["range","每人（價格範圍）"],["car","每車／整團一次"],["unk","要錢，但還不知道多少"]].map(([x,y])=>h("option",{value:x},y)));
+  const a=h("input",{type:"number",id:"f-pa",min:"0",inputmode:"numeric"}),b=h("input",{type:"number",id:"f-pb",min:"0",inputmode:"numeric"});
+  const cu=h("select",{id:"f-pc"},h("option",{value:"KRW"},"₩ 韓元"),h("option",{value:"TWD"},"NT$ 台幣"));
+  const note=h("input",{id:"f-pn",placeholder:"例如：登頂、Race & Play、渡輪來回"});note.value=label;
+  if(!cur)kind.value="blank";else if(!p)kind.value="unk";else if(p.max===0)kind.value="none";
+  else if(p.min!==p.max){kind.value="range";a.value=p.min;b.value=p.max}else{kind.value=/每車|／車|\/車/.test(cur)?"car":"pp";a.value=p.min}
+  let dirty=!cur;const preview=h("div",{class:"small muted"});
+  const amt=h("div",{class:"two"},h("label",{},"金額",a),h("label",{},"幣別",cu)),hi=h("label",{},"最高金額",b);
+  const fmt=()=>{const k=kind.value,n=note.value.trim(),pre=n?n+" ":"";const toK=x=>cu.value==="KRW"?Math.round(+x):Math.round(+x/rate);const c=x=>x.toLocaleString("en-US");
+    if(k==="blank")return "";if(k==="none")return pre+"免費";if(k==="unk"||!+a.value)return pre+"價格待確認";
+    const w=toK(a.value);
+    if(k==="pp")return pre+`約 NT$${c(Math.round(w*rate))}（₩${c(w)}）`;
+    if(k==="range"){const w2=Math.max(w,toK(b.value||a.value));return pre+`約 ₩${c(w)}–${c(w2)}（NT$${c(Math.round(w*rate))}–${c(Math.round(w2*rate))}）`}
+    return pre+`每車 ₩${c(w)}`};
+  const sync=()=>{const k=kind.value;amt.hidden=!["pp","range","car"].includes(k);hi.hidden=k!=="range";
+    const f=fmt();preview.textContent=dirty?(f?"會顯示成："+f:""):(cur?"目前："+cur:"")};
+  [kind,a,b,cu,note].forEach(x=>{x.addEventListener("input",()=>{dirty=true;sync()});x.addEventListener("change",()=>{dirty=true;sync()})});sync();
+  const el=h("div",{class:"picker"},h("b",{class:"small"},"費用"),h("div",{class:"two"},h("label",{},"怎麼收",kind),h("label",{},"說明（選填）",note)),amt,hi,preview);
+  return{el,get:()=>dirty?fmt():cur};
 }
 
 /* ================= cost ================= */
