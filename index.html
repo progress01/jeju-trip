@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>濟州島家族旅行</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: basalt-and-tangerine trip board. Overview board (days as columns) for moving things around; day view for reading. */
+:root{
+  --paper:#f2f4f3; --card:#ffffff; --ink:#1c2321; --muted:#5b6663; --line:#d5dcd9;
+  --tang:#d9661f; --tang-soft:#fce6d4; --sea:#1d716f; --sea-soft:#d7ecea;
+  --flag:#9a3d22; --flag-soft:#f8e3da; --add:#2f7a3d; --add-soft:#dff0e1; --move:#2b5fa8; --move-soft:#dde8f7;
+  --f-display:"LXGW WenKai TC","Noto Serif TC",serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#131816; --card:#1b2220; --ink:#e6ebe9; --muted:#9ba7a3; --line:#2d3633;
+  --tang:#f08a45; --tang-soft:#3a2416; --sea:#56b6b0; --sea-soft:#15302e;
+  --flag:#ef9a7c; --flag-soft:#3a2018; --add:#7cc98a; --add-soft:#173020; --move:#8fb4ee; --move-soft:#18253a; color-scheme:dark}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 80px}
+.wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;font-weight:700}
+a{color:var(--sea)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--tang);outline-offset:2px}
+[hidden]{display:none!important}
+.muted{color:var(--muted)} .small{font-size:13px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+header h1{font-size:clamp(28px,6vw,42px);line-height:1.1}
+.facts{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--muted);font-size:14px;margin-top:6px}
+.count b{font-family:var(--f-display);font-size:38px;color:var(--tang);line-height:1}
+
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);padding-block:8px;border-bottom:1px solid var(--line)}
+.tabs{display:flex;gap:4px;background:var(--line);padding:3px;border-radius:10px;overflow-x:auto;max-width:100%}
+.tabs button{all:unset;cursor:pointer;padding:6px 14px;border-radius:8px;font-weight:700;font-size:14px;white-space:nowrap}
+.tabs button[aria-pressed="true"]{background:var(--card);color:var(--tang)}
+.btn{cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:8px;padding:6px 14px;font-weight:700;font-size:14px;white-space:nowrap}
+.btn:hover{opacity:.88}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--ink)}
+.btn.tang{background:var(--tang);border-color:var(--tang);color:#fff}
+.btn.danger{background:transparent;color:var(--flag);border-color:var(--flag)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.editsw{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;cursor:pointer;user-select:none}
+.editsw input{width:18px;height:18px;accent-color:var(--tang)}
+
+.banner{border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--sea-soft)}
+.banner.draft{background:var(--tang-soft)}
+.banner.alt{background:var(--move-soft)}
+.banner .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.banner .msg{flex:1 1 260px;font-size:14px}
+.changes{margin:0;padding-left:20px;font-size:14px;display:flex;flex-direction:column;gap:2px}
+.changes li.add::marker{color:var(--add)} .changes li.del::marker{color:var(--flag)} .changes li.move::marker{color:var(--move)}
+
+/* board */
+.board{display:flex;gap:12px;overflow-x:auto;padding-bottom:10px;align-items:flex-start;scroll-snap-type:x proximity}
+.col{flex:0 0 272px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;scroll-snap-align:start}
+.colhead{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:0;padding:2px 4px 8px;border-bottom:2px solid var(--ink)}
+.colhead .d{font-family:var(--f-mono);font-size:12px;color:var(--tang)}
+.colhead .t{font-family:var(--f-display);font-weight:700;font-size:18px;line-height:1.3}
+.colhead .s{font-size:12px;color:var(--muted)}
+.lanelabel{font-size:12px;font-weight:700;color:var(--sea);padding:4px 4px 0;display:flex;justify-content:space-between;gap:6px}
+.list{display:flex;flex-direction:column;gap:6px;min-height:36px;border-radius:8px;padding:2px}
+.edit .list{background:repeating-linear-gradient(135deg,transparent 0 8px,color-mix(in srgb,var(--line) 35%,transparent) 8px 9px);outline:1px dashed var(--line)}
+.card{display:flex;gap:8px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 9px;cursor:pointer;font-size:14px;line-height:1.4}
+.card:hover{border-color:var(--sea)}
+.card .tm{display:block;font-family:var(--f-mono);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.card b{font-weight:700}
+.card .body{min-width:0;flex:1}
+.card.gap{border-style:dashed;border-color:var(--flag)} .card.gap b{color:var(--flag)}
+.grip{display:none;flex:0 0 14px;align-self:stretch;cursor:grab;touch-action:none;background:radial-gradient(circle,var(--muted) 1.3px,transparent 1.6px) 0 0/7px 7px;opacity:.6;min-height:22px}
+.edit .grip{display:block}
+.chgtag{display:inline-block;font-size:10.5px;font-weight:700;border-radius:4px;padding:0 5px;margin-left:4px;vertical-align:1px}
+.card.c-add{box-shadow:inset 3px 0 0 var(--add)} .c-add .chgtag{background:var(--add-soft);color:var(--add)}
+.card.c-move{box-shadow:inset 3px 0 0 var(--move)} .c-move .chgtag{background:var(--move-soft);color:var(--move)}
+.card.c-edit{box-shadow:inset 3px 0 0 var(--tang)} .c-edit .chgtag{background:var(--tang-soft);color:var(--tang)}
+.sortable-ghost{opacity:.35}
+.sortable-chosen{box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.pocket{border-top:1px dashed var(--line);padding-top:6px}
+.pocket .lanelabel{color:var(--muted)}
+.pocket .card{background:var(--paper)}
+.addbtn{all:unset;cursor:pointer;font-size:13px;color:var(--muted);padding:4px 8px;border-radius:6px;text-align:center;border:1px dashed var(--line)}
+.addbtn:hover{color:var(--tang);border-color:var(--tang)}
+.tix{display:inline-block;margin-top:3px;font-size:11.5px;font-family:var(--f-mono);background:var(--sea-soft);padding:0 7px;border-radius:5px}
+.notecount{font-size:12px;color:var(--flag)}
+
+/* day view */
+.daychips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.daychips button{cursor:pointer;border:1px solid var(--line);background:var(--card);border-radius:99px;padding:4px 12px;font-size:14px;white-space:nowrap}
+.daychips button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.dayhead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 20px;align-items:flex-end;border-bottom:2px solid var(--ink);padding-bottom:10px}
+.dayhead h2{font-size:clamp(22px,4.5vw,30px)}
+.eyebrow{font-family:var(--f-mono);color:var(--tang);font-size:13px;letter-spacing:.06em}
+.stay{font-size:14px;display:flex;flex-direction:column;align-items:flex-end;gap:0;text-align:right}
+.lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px;margin-top:14px}
+.lanes>*{min-width:0}
+.lanebox{display:flex;flex-direction:column;gap:8px}
+.lanebox h3{font-size:18px;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.pc{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px}
+.pc b{display:block;font-size:11px;letter-spacing:.06em;color:var(--muted)}
+.dv .card{padding:9px 11px}
+.dv .card .desc{display:block;color:var(--muted);font-size:13.5px;margin-top:2px}
+.flags{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.flags li{background:var(--flag-soft);border-radius:8px;padding:8px 12px;font-size:14px}
+section.block{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+section.block>h3{font-size:18px}
+.maps{display:inline-flex;gap:6px;font-size:12px}
+.maps a{text-decoration:none;border:1px solid var(--line);border-radius:5px;padding:0 6px;color:var(--muted)}
+.maps a:hover{color:var(--sea);border-color:var(--sea)}
+
+/* todo + log */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:6px;max-width:760px}
+.cat{font-family:var(--f-display);font-size:17px;margin-top:8px}
+.todo{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:8px 0;border-top:1px solid var(--line)}
+.todo input[type=checkbox]{width:18px;height:18px;margin-top:3px;accent-color:var(--tang)}
+.todo.done .tx{text-decoration:line-through;color:var(--muted)}
+.own{font-size:12px;color:var(--sea);font-weight:700}
+.chip{cursor:pointer;border:1px solid var(--line);background:transparent;border-radius:99px;padding:1px 10px;font-size:13px;white-space:nowrap}
+.commit{border-top:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;gap:6px}
+.commit .h{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
+.commit .when{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+
+/* dialog */
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);padding:0;width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 40px)}
+dialog::backdrop{background:rgba(10,15,14,.45)}
+.dlg{display:flex;flex-direction:column;gap:10px;padding:18px}
+.dlg h3{font-size:20px}
+.dlg label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.dlg .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dlg .acts{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:6px}
+.dlg .acts .left{margin-right:auto}
+.dlg .check{flex-direction:row;align-items:center;gap:8px;font-size:14px;color:var(--ink)}
+input,select,textarea{border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:7px 10px;font-size:15px;width:100%;min-width:0}
+input[type=checkbox]{width:auto}
+textarea{resize:vertical;min-height:60px}
+.note{font-size:13px;color:var(--muted);border-left:3px solid var(--tang);padding-left:10px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:9px 16px;border-radius:10px;font-size:14px;z-index:20;max-width:calc(100vw - 32px)}
+footer{font-size:12px;color:var(--muted)}
+@media (max-width:520px){.dlg .two{grid-template-columns:1fr}.stay{align-items:flex-start;text-align:left}.pc{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><h1 id="title">濟州島家族旅行</h1><div class="facts" id="facts"></div></div>
+    <div class="count"><div class="muted small">距離出發</div><b id="cd">–</b> <span class="muted">天</span></div>
+  </header>
+  <div id="banner"></div>
+  <div class="bar">
+    <div class="tabs" role="group" aria-label="切換畫面">
+      <button data-view="board">總覽看板</button><button data-view="day">每日行程</button><button data-view="todo">待辦</button><button data-view="log">修改紀錄</button>
+    </div>
+    <label class="editsw" id="editsw"><input type="checkbox" id="editmode"> 編輯模式</label>
+  </div>
+  <main id="main"><p class="muted">載入中…</p></main>
+  <footer id="footer"></footer>
+</div>
+<dialog id="dlg"></dialog>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+<script>
+"use strict";
+/* ================= state ================= */
+const LS_DRAFT="jeju-draft-v1", LS_TOKEN="jeju-gh-token", LS_NAME="jeju-my-name";
+const S={pub:null,pubHash:"",draft:null,draftBase:"",alt:null,view:"board",day:null,edit:false,showChanges:false,log:null};
+const $=s=>document.querySelector(s);
+const clone=o=>JSON.parse(JSON.stringify(o));
+const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+function hash(s){let h=5381;for(let i=0;i<s.length;i++)h=(h*33^s.charCodeAt(i))>>>0;return h.toString(36)}
+function newId(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
+function h(tag,attrs,...kids){const e=document.createElement(tag);
+  for(const[k,v]of Object.entries(attrs||{})){if(v==null||v===false)continue;
+    if(k==="class")e.className=v;else if(k.startsWith("on"))e.addEventListener(k.slice(2),v);
+    else if(k==="text")e.textContent=v;else e.setAttribute(k,v===true?"":v);}
+  for(const c of kids.flat()){if(c==null||c===false)continue;e.append(c.nodeType?c:document.createTextNode(String(c)))}
+  return e}
+function toast(t){const el=$("#toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2600)}
+const naver=q=>"https://map.naver.com/p/search/"+encodeURIComponent(q);
+const gmap=q=>"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(q);
+const mapLinks=q=>q?h("span",{class:"maps"},h("a",{href:naver(q),target:"_blank",rel:"noopener"},"Naver"),h("a",{href:gmap(q),target:"_blank",rel:"noopener"},"Google")):null;
+
+function shown(){return S.alt?S.alt.data:(S.draft||S.pub)}
+function editable(){return S.edit&&!S.alt}
+function ensureDraft(){if(!S.draft){S.draft=clone(S.pub);S.draftBase=S.pubHash}return S.draft}
+function saveDraft(){
+  if(S.draft&&JSON.stringify(S.draft)===JSON.stringify(S.pub)){S.draft=null}
+  if(S.draft) ls.set(LS_DRAFT,JSON.stringify({base:S.draftBase,data:S.draft,at:Date.now()})); else ls.del(LS_DRAFT);
+}
+function commit(fn){ensureDraft();fn(S.draft);saveDraft();render()}
+
+/* ================= list helpers ================= */
+const keyOf=(d,l)=>d+"/"+l;
+function dayOf(data,id){return data.days.find(x=>x.id===id)}
+function getList(data,key){const[d,l]=key.split("/");const day=dayOf(data,d);if(!day)return null;
+  if(l==="_pocket")return day.backups;const lane=day.lanes.find(x=>x.id===l);return lane?lane.items:null}
+function laneShort(lane){return (lane.label||"").split("｜")[0]}
+function listLabel(data,key){const[d,l]=key.split("/");const day=dayOf(data,d);if(!day)return key;
+  if(l==="_pocket")return day.date+" 口袋名單";const lane=day.lanes.find(x=>x.id===l);
+  return day.date+(day.lanes.length>1&&lane?" "+laneShort(lane):"")}
+function allKeys(data){const ks=[];for(const d of data.days){for(const l of d.lanes)ks.push(keyOf(d.id,l.id));ks.push(keyOf(d.id,"_pocket"))}return ks}
+function locate(data){const m={};for(const k of allKeys(data)){(getList(data,k)||[]).forEach((it,i)=>m[it.id]={key:k,idx:i,it})}return m}
+
+/* ================= diff ================= */
+const F={time:"時間",name:"名稱",desc:"說明",price:"費用",map:"地圖搜尋字"};
+function diff(a,b){
+  const out=[],mark={};if(!a||!b)return{out,mark};
+  const la=locate(a),lb=locate(b);
+  for(const id in lb){const B=lb[id];
+    if(!la[id]){out.push({t:"add",x:`${listLabel(b,B.key)}：新增「${B.it.name}」`});mark[id]="add";continue}
+    const A=la[id];
+    if(A.key!==B.key){out.push({t:"move",x:`「${B.it.name}」從 ${listLabel(a,A.key)} 移到 ${listLabel(b,B.key)}`});mark[id]="move"}
+    for(const f in F){if((A.it[f]||"")!==(B.it[f]||"")){
+      out.push({t:"edit",x:f==="time"||f==="price"?`「${B.it.name}」${F[f]}：${A.it[f]||"（空）"} → ${B.it[f]||"（空）"}`:f==="name"?`「${A.it.name}」改名為「${B.it.name}」`:`「${B.it.name}」修改${F[f]}`});
+      if(!mark[id])mark[id]="edit"}}
+    if(!!A.it.gap!==!!B.it.gap){out.push({t:"edit",x:`「${B.it.name}」${B.it.gap?"標為待補":"取消待補"}`});if(!mark[id])mark[id]="edit"}
+  }
+  for(const id in la)if(!lb[id])out.push({t:"del",x:`${listLabel(a,la[id].key)}：刪除「${la[id].it.name}」`});
+  const ka=new Set(allKeys(a));
+  for(const k of allKeys(b)){if(!ka.has(k))continue;
+    const sa=(getList(a,k)||[]).map(x=>x.id),sb=(getList(b,k)||[]).map(x=>x.id);
+    const common=sa.filter(id=>sb.includes(id)),cb=sb.filter(id=>sa.includes(id));
+    if(common.join()!==cb.join()){out.push({t:"move",x:`${listLabel(b,k)}：調整順序`});
+      cb.forEach((id,i)=>{if(common[i]!==id&&!mark[id])mark[id]="move"})}}
+  for(const db of b.days){const da=dayOf(a,db.id);if(!da){out.push({t:"add",x:`新增一天 ${db.date}`});continue}
+    if(da.title!==db.title||da.short!==db.short)out.push({t:"edit",x:`${db.date} 標題改為「${db.title}」`});
+    if(JSON.stringify(da.stay)!==JSON.stringify(db.stay))out.push({t:"edit",x:`${db.date} 住宿改為「${db.stay.name||db.stay.area}」`});
+    if((da.notes||[]).join("\n")!==(db.notes||[]).join("\n"))out.push({t:"edit",x:`${db.date} 修改討論點`});
+    for(const lb2 of db.lanes){const la2=da.lanes.find(x=>x.id===lb2.id);
+      if(!la2){out.push({t:"add",x:`${db.date} 新增「${lb2.label||"分組"}」`});continue}
+      if(la2.label!==lb2.label)out.push({t:"edit",x:`${db.date}「${la2.label}」改名為「${lb2.label}」`});
+      if((la2.pro||"")!==(lb2.pro||"")||(la2.con||"")!==(lb2.con||"")||(la2.notes||[]).join()!==(lb2.notes||[]).join())out.push({t:"edit",x:`${db.date} 修改「${laneShort(lb2)}」的說明`})}
+    for(const la2 of da.lanes)if(!db.lanes.find(x=>x.id===la2.id))out.push({t:"del",x:`${da.date} 刪除「${la2.label||"分組"}」`});
+  }
+  const ta={};(a.todos||[]).forEach(t=>ta[t.id]=t);const tb={};(b.todos||[]).forEach(t=>tb[t.id]=t);
+  for(const id in tb){const B=tb[id],A=ta[id];
+    if(!A){out.push({t:"add",x:`待辦：新增「${B.text}」`});continue}
+    if(!!A.done!==!!B.done)out.push({t:"edit",x:`待辦：「${B.text}」${B.done?"完成":"改回未完成"}`});
+    if(A.text!==B.text||(A.owner||"")!==(B.owner||""))out.push({t:"edit",x:`待辦：修改「${B.text}」`})}
+  for(const id in ta)if(!tb[id])out.push({t:"del",x:`待辦：刪除「${ta[id].text}」`});
+  return{out,mark}
+}
+function currentDiff(){if(S.alt)return diff(S.pub,S.alt.data);if(S.draft)return diff(S.pub,S.draft);return{out:[],mark:{}}}
+
+/* ================= render ================= */
+function render(){
+  const data=shown();const D=currentDiff();
+  $("#title").textContent=data.trip.title;
+  $("#facts").replaceChildren(h("span",{style:"font-family:var(--f-mono)"},data.trip.start.replaceAll("-",".")+" – "+data.trip.end.slice(5).replace("-",".")),...(data.trip.facts||[]).map(f=>h("span",{},f)));
+  $("#footer").textContent=data.trip.footer||"";
+  document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.view===S.view)));
+  const sw=$("#editmode");sw.checked=S.edit;sw.disabled=!!S.alt;
+  document.body.classList.toggle("edit",editable());
+  renderBanner(D);
+  const main=$("#main");const keepX=main.querySelector(".board")?.scrollLeft||0;
+  main.replaceChildren();
+  if(S.view==="board")main.append(renderBoard(data,D.mark));
+  else if(S.view==="day")main.append(renderDayView(data,D.mark));
+  else if(S.view==="todo")main.append(renderTodo(data));
+  else main.append(renderLog());
+  const b=main.querySelector(".board");if(b)b.scrollLeft=keepX;
+  setupSortable();
+}
+function renderBanner(D){
+  const box=$("#banner");box.replaceChildren();
+  const list=()=>S.showChanges&&D.out.length?h("ol",{class:"changes"},D.out.map(c=>h("li",{class:c.t},c.x))):null;
+  const toggle=()=>h("button",{class:"btn ghost",onclick:()=>{S.showChanges=!S.showChanges;render()}},S.showChanges?"收起變更":"看變更（"+D.out.length+"）");
+  if(S.alt){
+    const who=S.alt.kind==="proposal"?`${S.alt.by||"家人"} 的提案${S.alt.msg?"：「"+S.alt.msg+"」":""}`:`舊版本：${S.alt.label}`;
+    box.append(h("div",{class:"banner alt"},h("div",{class:"row"},
+      h("div",{class:"msg"},h("b",{},who),h("br"),D.out.length?`跟目前版本有 ${D.out.length} 處不同，有變動的項目會標顏色。`:"跟目前版本一樣。"),
+      D.out.length?toggle():null,
+      h("button",{class:"btn tang",onclick:adoptAlt},"從這個版本接著改"),
+      h("button",{class:"btn ghost",onclick:()=>{S.alt=null;history.replaceState(null,"",location.pathname);render()}},"回到目前版本")),list()));
+    return}
+  if(S.draft){
+    const stale=S.draftBase&&S.draftBase!==S.pubHash;
+    box.append(h("div",{class:"banner draft"},h("div",{class:"row"},
+      h("div",{class:"msg"},h("b",{},`你有 ${D.out.length} 處修改還沒發布`),h("br"),"只存在這台裝置。可以分享連結給家人看，或存到 GitHub 成為正式版本。",
+        stale?h("div",{style:"color:var(--flag)"},"注意：正式版本在你修改之後有更新過，變更清單裡可能包含別人改的東西。"):null),
+      toggle(),
+      h("button",{class:"btn tang",onclick:openShare},"分享給家人看"),
+      h("button",{class:"btn",onclick:openSave},"存到 GitHub"),
+      h("button",{class:"btn ghost",id:"discard",onclick:e=>{const b=e.currentTarget;if(b.dataset.sure){S.draft=null;saveDraft();S.showChanges=false;render();toast("已放棄修改")}else{b.dataset.sure="1";b.textContent="再按一次確認放棄"}}},"放棄修改")),list()));
+  }
+}
+function cardEl(it,mark,detailed){
+  const m=mark[it.id];const tag=m?{add:"新增",move:"移動",edit:"修改"}[m]:"";
+  return h("div",{class:"card"+(it.gap?" gap":"")+(m?" c-"+m:""),"data-id":it.id,onclick:e=>{if(e.target.closest(".grip")||e.target.closest("a"))return;openItem(it.id)}},
+    h("span",{class:"grip","aria-label":"拖曳"}),
+    h("div",{class:"body"},it.time?h("span",{class:"tm"},it.time):null,h("b",{},it.name),tag?h("span",{class:"chgtag"},tag):null,
+      detailed&&it.desc?h("span",{class:"desc"},it.desc):null,
+      it.price?h("div",{},h("span",{class:"tix"},it.price)):null,
+      detailed&&it.map?h("div",{style:"margin-top:3px"},mapLinks(it.map)):null));
+}
+function listEl(data,key,mark,detailed){
+  const items=getList(data,key)||[];
+  return h("div",{class:"listwrap"},h("div",{class:"list","data-list":key},items.map(it=>cardEl(it,mark,detailed))),
+    editable()?h("button",{class:"addbtn",onclick:()=>openItem(null,key)},"＋ 新增"):null);
+}
+function renderBoard(data,mark){
+  const wrap=h("div",{class:"board"});
+  for(const d of data.days){
+    const col=h("div",{class:"col"},
+      h("button",{class:"colhead",onclick:()=>{S.view="day";S.day=d.id;render();scrollTo({top:0})}},
+        h("span",{class:"d"},d.date+"（"+d.dow+"）"),h("span",{class:"t"},d.short||d.title),
+        h("span",{class:"s"},"住："+(d.stay.area||"—")),(d.notes||[]).length?h("span",{class:"notecount"},d.notes.length+" 個討論點"):null));
+    for(const l of d.lanes){
+      if(d.lanes.length>1||l.label)col.append(h("div",{class:"lanelabel"},h("span",{},l.label||"")));
+      col.append(listEl(data,keyOf(d.id,l.id),mark,false));
+    }
+    col.append(h("div",{class:"pocket"},h("div",{class:"lanelabel"},h("span",{},"口袋名單"),h("span",{style:"font-weight:400"},editable()?"拖進上面就排進行程":"")),listEl(data,keyOf(d.id,"_pocket"),mark,false)));
+    wrap.append(col);
+  }
+  return h("div",{},h("p",{class:"small muted",style:"margin:0 0 8px"},editable()?"按住卡片左邊的點點拖曳，可以在不同天、不同方案、口袋名單之間搬動。點卡片可以修改。":"左右滑動看每一天；點卡片看細節，點日期看整天。打開「編輯模式」就能拖拉調整。"),wrap);
+}
+function renderDayView(data,mark){
+  if(!S.day||!dayOf(data,S.day))S.day=data.days[0].id;
+  const d=dayOf(data,S.day);
+  const chips=h("div",{class:"daychips"},data.days.map(x=>h("button",{"aria-pressed":String(x.id===d.id),onclick:()=>{S.day=x.id;render()}},x.date+" "+x.short)));
+  const head=h("div",{class:"dayhead"},
+    h("div",{},h("div",{class:"eyebrow"},d.date+"（"+d.dow+"）"),h("h2",{},d.title)),
+    h("div",{class:"stay"},h("span",{class:"muted small"},"住宿・"+(d.stay.area||"—")),d.stay.name?h("b",{},d.stay.name):null,d.stay.note?h("span",{class:"muted small"},d.stay.note):null,mapLinks(d.stay.map),
+      editable()?h("button",{class:"btn ghost",style:"margin-top:6px",onclick:()=>openDay(d.id)},"編輯這天"):null));
+  const lanes=h("div",{class:"lanes dv"},d.lanes.map(l=>h("div",{class:"lanebox"},
+    (d.lanes.length>1||l.label)?h("h3",{},h("span",{},l.label||""),editable()?h("button",{class:"chip",onclick:()=>openLane(d.id,l.id)},"編輯"):null):null,
+    (l.pro||l.con)?h("div",{class:"pc"},h("div",{},h("b",{},"優點"),l.pro||"—"),h("div",{},h("b",{},"代價"),l.con||"—")):null,
+    listEl(data,keyOf(d.id,l.id),mark,true),
+    (l.notes||[]).length?h("ul",{class:"flags"},l.notes.map(n=>h("li",{},n))):null)));
+  const out=h("div",{},chips,h("div",{style:"margin-top:12px"},head),lanes);
+  if(editable())out.append(h("div",{style:"margin-top:10px"},h("button",{class:"btn ghost",onclick:()=>addLane(d.id)},d.lanes.some(l=>l.option)?"＋ 新增一個方案":"＋ 新增分組／方案")));
+  if((d.notes||[]).length)out.append(h("section",{class:"block"},h("h3",{},"待討論"),h("ul",{class:"flags"},d.notes.map(n=>h("li",{},n)))));
+  out.append(h("section",{class:"block"},h("h3",{},"口袋名單",h("span",{class:"small muted",style:"font-family:var(--f-body);font-weight:400"},"　還沒排進行程的備選")),h("div",{class:"dv"},listEl(data,keyOf(d.id,"_pocket"),mark,true))));
+  return out;
+}
+function renderTodo(data){
+  const p=h("div",{class:"panel"});
+  const todos=data.todos||[];const cats=[...new Set(todos.map(t=>t.cat||"其他"))];
+  p.append(h("p",{class:"small muted",style:"margin:0"},"打勾也算一次修改，記得存到 GitHub 或分享給家人。"));
+  for(const c of cats){p.append(h("div",{class:"cat"},c));
+    todos.filter(t=>(t.cat||"其他")===c).forEach(t=>{
+      const cb=h("input",{type:"checkbox","aria-label":t.text,disabled:S.alt?true:null});cb.checked=!!t.done;
+      cb.addEventListener("change",()=>commit(d=>{d.todos.find(x=>x.id===t.id).done=cb.checked}));
+      p.append(h("div",{class:"todo"+(t.done?" done":"")},cb,h("div",{},h("div",{class:"tx"},t.text),t.owner?h("div",{class:"own"},t.owner):null),
+        editable()?h("button",{class:"chip",onclick:()=>openTodo(t.id)},"編輯"):h("span")))})}
+  if(editable())p.append(h("div",{style:"margin-top:8px"},h("button",{class:"btn ghost",onclick:()=>openTodo(null)},"＋ 新增待辦")));
+  return p;
+}
+
+/* ================= drag ================= */
+let sortables=[];
+function setupSortable(){
+  sortables.forEach(s=>s.destroy());sortables=[];
+  if(!editable()||!window.Sortable)return;
+  document.querySelectorAll("[data-list]").forEach(el=>{
+    sortables.push(Sortable.create(el,{group:"items",handle:".grip",draggable:".card",animation:150,fallbackOnBody:true,swapThreshold:.6,
+      onEnd(evt){
+        const from=evt.from.dataset.list,to=evt.to.dataset.list,oi=evt.oldDraggableIndex,ni=evt.newDraggableIndex;
+        if(from===to&&oi===ni)return;
+        commit(d=>{const a=getList(d,from),b=getList(d,to);const[it]=a.splice(oi,1);b.splice(ni,0,it)});
+      }}))});
+}
+
+/* ================= dialogs ================= */
+const dlg=$("#dlg");
+function openDlg(...kids){dlg.replaceChildren(h("form",{class:"dlg",method:"dialog"},...kids));dlg.showModal();}
+function field(label,id,val,opts={}){const inp=opts.area?h("textarea",{id,rows:opts.rows||3,placeholder:opts.ph||""}):h("input",{id,type:opts.type||"text",placeholder:opts.ph||""});
+  inp.value=val||"";return h("label",{},label,inp)}
+const v=id=>document.getElementById(id).value.trim();
+function twoStep(label,fn){return h("button",{type:"button",class:"btn danger left",onclick:e=>{const b=e.currentTarget;if(b.dataset.sure){fn()}else{b.dataset.sure="1";b.textContent="再按一次確認"}}},label)}
+
+function openItem(id,addKey){
+  const data=shown();const loc=id?locate(data)[id]:null;const it=loc?loc.it:{time:"",name:"",desc:"",price:"",map:""};
+  if(!editable()){
+    if(!loc)return;
+    openDlg(h("div",{class:"eyebrow"},listLabel(data,loc.key)+(it.time?"・"+it.time:"")),h("h3",{},it.name),
+      it.desc?h("p",{style:"margin:0"},it.desc):null,it.price?h("div",{},h("span",{class:"tix"},it.price)):null,
+      it.map?h("div",{},"地圖：",mapLinks(it.map)):h("div",{class:"small muted"},"地圖：",mapLinks(it.name)),
+      h("div",{class:"acts"},S.alt?null:h("button",{type:"button",class:"btn ghost left",onclick:()=>{dlg.close();S.edit=true;render();openItem(id)}},"修改"),h("button",{class:"btn"},"關閉")));
+    return}
+  const curKey=loc?loc.key:addKey;
+  const sel=h("select",{id:"f-list"},allKeys(data).map(k=>h("option",{value:k},listLabel(data,k))));sel.value=curKey;
+  const gap=h("input",{type:"checkbox",id:"f-gap"});gap.checked=!!it.gap;
+  openDlg(h("h3",{},loc?"修改項目":"新增項目"),
+    h("div",{class:"two"},field("時間","f-time",it.time,{ph:"例如 13:20–15:00"}),h("label",{},"放在",sel)),
+    field("名稱","f-name",it.name,{ph:"例如：道頭峰"}),
+    field("說明","f-desc",it.desc,{area:1,ph:"要做什麼、車程、注意事項"}),
+    h("div",{class:"two"},field("費用","f-price",it.price,{ph:"例如 約 NT$161（₩7,000）"}),field("地圖搜尋字（韓文最準）","f-map",it.map,{ph:"例如 산굼부리"})),
+    h("label",{class:"check"},gap,"標成「待補／還沒決定」"),
+    h("div",{class:"acts"},loc?twoStep("刪除",()=>{dlg.close();commit(d=>{const l=getList(d,loc.key);l.splice(l.findIndex(x=>x.id===id),1)})}):null,
+      h("button",{class:"btn ghost",value:"cancel"},"取消"),
+      h("button",{type:"button",class:"btn tang",onclick:()=>{
+        const name=v("f-name");if(!name){document.getElementById("f-name").focus();return}
+        const body={time:v("f-time"),name,desc:v("f-desc"),price:v("f-price"),map:v("f-map")};
+        const to=sel.value;dlg.close();
+        commit(d=>{let item;
+          if(loc){const l=getList(d,loc.key);const i=l.findIndex(x=>x.id===id);item=l[i];Object.assign(item,body);
+            if(gap.checked)item.gap=true;else delete item.gap;
+            if(to!==loc.key){l.splice(i,1);getList(d,to).push(item)}}
+          else{item={id:newId("n"),...body};if(gap.checked)item.gap=true;getList(d,to).push(item)}});
+      }},"儲存")));
+  setTimeout(()=>document.getElementById(loc?"f-time":"f-name").focus(),30);
+}
+function openDay(did){
+  const d=dayOf(shown(),did);
+  openDlg(h("h3",{},d.date+" 這天"),
+    field("標題","f-title",d.title),field("看板上的短標","f-short",d.short),
+    h("div",{class:"two"},field("住宿名稱","f-sname",d.stay.name),field("住宿區域","f-sarea",d.stay.area)),
+    h("div",{class:"two"},field("住宿備註","f-snote",d.stay.note),field("住宿地圖搜尋字","f-smap",d.stay.map)),
+    field("待討論（一行一點）","f-notes",(d.notes||[]).join("\n"),{area:1,rows:5}),
+    h("div",{class:"acts"},h("button",{class:"btn ghost",value:"cancel"},"取消"),h("button",{type:"button",class:"btn tang",onclick:()=>{
+      const body={title:v("f-title"),short:v("f-short"),stay:{name:v("f-sname"),area:v("f-sarea"),note:v("f-snote"),map:v("f-smap")},notes:v("f-notes").split("\n").map(s=>s.trim()).filter(Boolean)};
+      dlg.close();commit(dd=>Object.assign(dayOf(dd,did),body))}},"儲存")));
+}
+function openLane(did,lid){
+  const d=dayOf(shown(),did);const l=d.lanes.find(x=>x.id===lid);
+  openDlg(h("h3",{},"編輯「"+(l.label||"分組")+"」"),
+    field("名稱","f-label",l.label,{ph:"例如：方案 D｜下雨備案"}),
+    h("div",{class:"two"},field("優點","f-pro",l.pro,{area:1,rows:2}),field("代價","f-con",l.con,{area:1,rows:2})),
+    field("討論點（一行一點）","f-lnotes",(l.notes||[]).join("\n"),{area:1}),
+    h("div",{class:"acts"},d.lanes.length>1?twoStep("刪除這個方案（項目移到口袋名單）",()=>{dlg.close();commit(dd=>{const day=dayOf(dd,did);const i=day.lanes.findIndex(x=>x.id===lid);day.backups.push(...day.lanes[i].items);day.lanes.splice(i,1)})}):null,
+      h("button",{class:"btn ghost",value:"cancel"},"取消"),h("button",{type:"button",class:"btn tang",onclick:()=>{
+        const body={label:v("f-label"),pro:v("f-pro"),con:v("f-con"),notes:v("f-lnotes").split("\n").map(s=>s.trim()).filter(Boolean)};
+        dlg.close();commit(dd=>Object.assign(dayOf(dd,did).lanes.find(x=>x.id===lid),body))}},"儲存")));
+}
+function addLane(did){
+  const d=dayOf(shown(),did);const opt=d.lanes.some(l=>l.option);
+  const letter=String.fromCharCode(65+d.lanes.length);const id=newId("L");
+  commit(dd=>{const day=dayOf(dd,did);
+    if(day.lanes.length===1&&!day.lanes[0].label){day.lanes[0].label="方案 A";day.lanes[0].option=true}
+    day.lanes.push({id,label:"方案 "+(opt||day.lanes.length>0?letter:"A")+"｜",option:true,pro:"",con:"",notes:[],items:[]})});
+  openLane(did,id);
+}
+function openTodo(tid){
+  const data=shown();const t=tid?data.todos.find(x=>x.id===tid):{text:"",owner:"",cat:"出發前確認"};
+  const cats=[...new Set([...(data.todos||[]).map(x=>x.cat),"出發前確認"])];
+  const sel=h("select",{id:"f-cat"},cats.map(c=>h("option",{},c)));sel.value=t.cat;
+  openDlg(h("h3",{},tid?"修改待辦":"新增待辦"),field("事項","f-tx",t.text),h("div",{class:"two"},field("負責人","f-own",t.owner),h("label",{},"分類",sel)),
+    h("div",{class:"acts"},tid?twoStep("刪除",()=>{dlg.close();commit(d=>{d.todos=d.todos.filter(x=>x.id!==tid)})}):null,
+      h("button",{class:"btn ghost",value:"cancel"},"取消"),h("button",{type:"button",class:"btn tang",onclick:()=>{
+        const text=v("f-tx");if(!text)return;const body={text,owner:v("f-own"),cat:sel.value};dlg.close();
+        commit(d=>{d.todos=d.todos||[];if(tid)Object.assign(d.todos.find(x=>x.id===tid),body);else d.todos.push({id:newId("t"),done:false,...body})})}},"儲存")));
+}
+
+/* ================= share proposal ================= */
+function openShare(){
+  const D=currentDiff();
+  openDlg(h("h3",{},"分享給家人看"),
+    h("p",{class:"note",style:"margin:0"},"會產生一個連結，家人打開就看到你改過的版本，變動的地方會標顏色。貼到 LINE 群組就好，不會改到正式版本。"),
+    field("你的名字","f-by",ls.get(LS_NAME)||"",{ph:"例如：小文"}),
+    field("一句話說明","f-msg",D.out.slice(0,2).map(c=>c.x).join("；"),{area:1,rows:2}),
+    h("div",{id:"share-out"}),
+    h("div",{class:"acts"},h("button",{class:"btn ghost",value:"cancel"},"關閉"),h("button",{type:"button",class:"btn tang",onclick:makeLink},"產生連結")));
+}
+async function makeLink(){
+  const by=v("f-by");ls.set(LS_NAME,by);
+  // only send what differs from the published version, to keep the link short
+  const days={};for(const d of S.draft.days){const pd=dayOf(S.pub,d.id);if(!pd||JSON.stringify(pd)!==JSON.stringify(d))days[d.id]=d}
+  const payload={v:2,by,msg:v("f-msg"),at:Date.now(),days};
+  if(JSON.stringify(S.draft.todos)!==JSON.stringify(S.pub.todos))payload.todos=S.draft.todos;
+  if(JSON.stringify(S.draft.trip)!==JSON.stringify(S.pub.trip))payload.trip=S.draft.trip;
+  const url=location.origin+location.pathname+"#p="+LZString.compressToEncodedURIComponent(JSON.stringify(payload));
+  const ta=h("textarea",{rows:3,readonly:true,style:"font-size:12px"});ta.value=url;
+  const out=document.getElementById("share-out");out.replaceChildren(ta,h("div",{class:"small muted"},"連結長度 "+url.length+" 字元"));
+  try{await navigator.clipboard.writeText(url);toast("連結已複製，貼到 LINE 就可以")}catch(e){ta.select();toast("請手動複製上面的連結")}
+}
+function readProposal(){
+  const m=location.hash.match(/^#p=(.+)$/);if(!m)return null;
+  try{const p=JSON.parse(LZString.decompressFromEncodedURIComponent(m[1]));
+    if(p&&p.days){const data=clone(S.pub);
+      for(const id in p.days){const i=data.days.findIndex(x=>x.id===id);if(i>=0)data.days[i]=p.days[id];else data.days.push(p.days[id])}
+      if(p.todos)data.todos=p.todos;if(p.trip)data.trip=p.trip;
+      return{kind:"proposal",by:p.by,msg:p.msg,data}}}catch(e){}
+  toast("這個分享連結壞掉了，可能沒有複製完整");return null;
+}
+function adoptAlt(){
+  if(S.draft&&!confirmReplace())return;
+  S.draft=clone(S.alt.data);S.draftBase=S.pubHash;S.alt=null;saveDraft();history.replaceState(null,"",location.pathname);S.edit=true;render();toast("已變成你的草稿，可以繼續改");
+}
+function confirmReplace(){ // the viewer may not show confirm(); keep a simple flag-based second click via toast
+  if(confirmReplace.armed&&Date.now()-confirmReplace.armed<5000){confirmReplace.armed=0;return true}
+  confirmReplace.armed=Date.now();toast("你本來就有未發布的修改，會被取代。再按一次確認。");return false;
+}
+
+/* ================= GitHub ================= */
+function ghCfg(){
+  const g=Object.assign({owner:"",repo:"",branch:"main",path:""},(S.pub&&S.pub.github)||{});
+  if(!g.owner&&location.hostname.endsWith(".github.io")){
+    g.owner=location.hostname.split(".")[0];const segs=location.pathname.split("/").filter(Boolean).filter(s=>!s.endsWith(".html"));
+    if(segs.length){g.repo=segs[0];g.path="trip.json"}else{g.repo=location.hostname;g.path="trip.json"}}
+  return g;
+}
+function b64(str){const bytes=new TextEncoder().encode(str);let bin="";for(let i=0;i<bytes.length;i+=8192)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+8192));return btoa(bin)}
+function openSave(){
+  const g=ghCfg();const D=currentDiff();
+  const remember=h("input",{type:"checkbox",id:"f-rem"});remember.checked=!!ls.get(LS_TOKEN);
+  openDlg(h("h3",{},"存到 GitHub"),
+    h("p",{class:"note",style:"margin:0"},"存進去就是新的正式版本，GitHub 會留下紀錄，之後在「修改紀錄」看得到、也能還原。需要有這個 repo 寫入權限的 token（通常只有管理的人有）。"),
+    h("div",{class:"two"},field("帳號 owner","f-owner",g.owner),field("Repo","f-repo",g.repo)),
+    h("div",{class:"two"},field("分支","f-branch",g.branch),field("檔案路徑","f-path",g.path)),
+    field("GitHub token","f-token",ls.get(LS_TOKEN)||"",{type:"password",ph:"github_pat_…"}),
+    h("label",{class:"check"},remember,"記住在這台裝置"),
+    field("這次改了什麼（會留在紀錄裡）","f-cmsg",D.out.slice(0,3).map(c=>c.x).join("；")||"更新行程",{area:1,rows:2}),
+    h("div",{id:"save-out",class:"small"}),
+    h("div",{class:"acts"},h("button",{type:"button",class:"btn ghost left",onclick:downloadJson},"改成下載 trip.json"),
+      h("button",{class:"btn ghost",value:"cancel"},"取消"),h("button",{type:"button",class:"btn tang",id:"savebtn",onclick:doSave},"儲存")));
+}
+async function doSave(){
+  const cfg={owner:v("f-owner"),repo:v("f-repo"),branch:v("f-branch")||"main",path:v("f-path")};
+  const token=v("f-token"),msg=v("f-cmsg")||"更新行程";const out=document.getElementById("save-out");const btn=document.getElementById("savebtn");
+  if(!cfg.owner||!cfg.repo||!cfg.path||!token){out.textContent="帳號、repo、路徑和 token 都要填。";return}
+  if(document.getElementById("f-rem").checked)ls.set(LS_TOKEN,token);else ls.del(LS_TOKEN);
+  btn.disabled=true;out.textContent="儲存中…";
+  const api=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${cfg.path}`;
+  const hd={Authorization:"Bearer "+token,Accept:"application/vnd.github+json"};
+  try{
+    let sha;const cur=await fetch(api+"?ref="+encodeURIComponent(cfg.branch),{headers:hd,cache:"no-store"});
+    if(cur.ok)sha=(await cur.json()).sha;else if(cur.status!==404)throw new Error(cur.status===401?"token 不對或過期了":"讀不到檔案（"+cur.status+"）");
+    const data=clone(S.draft||S.pub);data.github=cfg;
+    const r=await fetch(api,{method:"PUT",headers:hd,body:JSON.stringify({message:msg,content:b64(JSON.stringify(data,null,1)+"\n"),branch:cfg.branch,sha})});
+    if(!r.ok){const t=await r.json().catch(()=>({}));throw new Error(r.status===403||r.status===404?"這個 token 沒有寫入這個 repo 的權限":(t.message||r.status))}
+    S.pub=data;S.pubHash=hash(JSON.stringify(data));S.draft=null;saveDraft();S.log=null;dlg.close();S.showChanges=false;render();
+    toast("已存到 GitHub。網站大約 1 分鐘後更新，家人重新整理就看得到。");
+  }catch(e){out.textContent="沒有存成功："+e.message;btn.disabled=false}
+}
+function downloadJson(){
+  const data=S.draft||S.pub;const blob=new Blob([JSON.stringify(data,null,1)+"\n"],{type:"application/json"});
+  const a=h("a",{href:URL.createObjectURL(blob),download:"trip.json"});document.body.append(a);a.click();a.remove();
+  const g=ghCfg();
+  const out=document.getElementById("save-out");
+  if(out&&g.owner&&g.repo)out.replaceChildren("已下載。到 GitHub 上傳覆蓋：",h("a",{href:`https://github.com/${g.owner}/${g.repo}/upload/${g.branch}/${g.path.split("/").slice(0,-1).join("/")}`,target:"_blank",rel:"noopener"},"打開上傳頁"));
+}
+async function loadLog(){
+  const g=ghCfg();if(!g.owner||!g.repo){S.log={error:"還沒設定 GitHub repo，放上 GitHub Pages 之後就會有紀錄。"};return}
+  S.log={loading:true};
+  try{
+    const tok=ls.get(LS_TOKEN);const hd=tok?{Authorization:"Bearer "+tok}:{};
+    const r=await fetch(`https://api.github.com/repos/${g.owner}/${g.repo}/commits?path=${encodeURIComponent(g.path)}&sha=${encodeURIComponent(g.branch)}&per_page=40`,{headers:hd});
+    if(!r.ok)throw new Error(r.status===403?"GitHub 查詢次數暫時用完，過一小時再看":"讀不到紀錄（"+r.status+"）");
+    S.log={items:(await r.json()).map(c=>({sha:c.sha,msg:c.commit.message,who:(c.author&&c.author.login)||c.commit.author.name,at:c.commit.author.date})),open:{}};
+  }catch(e){S.log={error:e.message}}
+  if(S.view==="log")render();
+}
+async function fetchVersion(sha){const g=ghCfg();const r=await fetch(`https://raw.githubusercontent.com/${g.owner}/${g.repo}/${sha}/${g.path}`);if(!r.ok)throw new Error(r.status);return r.json()}
+function renderLog(){
+  const p=h("div",{class:"panel"},h("h3",{style:"font-size:20px"},"修改紀錄"),h("p",{class:"small muted",style:"margin:0"},"每次存到 GitHub 都會留一筆。點「這次改了什麼」看細節，也可以把舊版本叫出來看或拿來接著改。"));
+  if(!S.log)loadLog();
+  if(S.log.loading){p.append(h("div",{class:"muted"},"載入中…"));return p}
+  if(S.log.error){p.append(h("div",{class:"muted"},S.log.error));return p}
+  if(!S.log.items.length)p.append(h("div",{class:"muted"},"還沒有紀錄。"));
+  S.log.items.forEach((c,i)=>{const o=S.log.open[c.sha];const d=new Date(c.at);
+    const when=(d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+    p.append(h("div",{class:"commit"},h("div",{class:"h"},h("span",{class:"when"},when),h("b",{},c.msg.split("\n")[0]),h("span",{class:"small muted"},c.who||"")),
+      h("div",{style:"display:flex;gap:6px;flex-wrap:wrap"},
+        h("button",{class:"chip",onclick:async()=>{if(o){delete S.log.open[c.sha];render();return}
+          S.log.open[c.sha]={loading:true};render();
+          try{const cur=await fetchVersion(c.sha);const prev=S.log.items[i+1]?await fetchVersion(S.log.items[i+1].sha):null;
+            S.log.open[c.sha]={list:prev?diff(prev,cur).out:[{t:"add",x:"第一個版本"}]}}catch(e){S.log.open[c.sha]={err:"讀不到這個版本"}}render()}},o?"收起":"這次改了什麼"),
+        h("button",{class:"chip",onclick:async()=>{try{const data=await fetchVersion(c.sha);S.alt={kind:"history",label:when+" "+c.msg.split("\n")[0],data};S.view="board";render();scrollTo({top:0})}catch(e){toast("讀不到這個版本")}}},"看這個版本")),
+      o?(o.loading?h("div",{class:"small muted"},"比對中…"):o.err?h("div",{class:"small muted"},o.err):h("ol",{class:"changes"},(o.list.length?o.list:[{t:"edit",x:"沒有內容變動"}]).map(x=>h("li",{class:x.t},x.x)))):null))});
+  return p;
+}
+
+/* ================= boot ================= */
+document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>{S.view=b.dataset.view;render()}));
+$("#editmode").addEventListener("change",e=>{S.edit=e.target.checked;render()});
+window.addEventListener("hashchange",()=>{const p=readProposal();if(p){S.alt=p;render()}});
+(async function(){
+  try{const r=await fetch("trip.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;S.pub=await r.json()}
+  catch(e){$("#main").replaceChildren(h("p",{},"讀不到 trip.json。請用 GitHub Pages 網址打開，或在資料夾裡開本機伺服器。"));return}
+  S.pubHash=hash(JSON.stringify(S.pub));
+  try{const d=JSON.parse(ls.get(LS_DRAFT)||"null");if(d&&d.data&&d.data.days){S.draft=d.data;S.draftBase=d.base||""}}catch(e){}
+  if(S.draft&&JSON.stringify(S.draft)===JSON.stringify(S.pub)){S.draft=null;saveDraft()}
+  S.alt=readProposal();
+  const dep=new Date(S.pub.trip.start+"T00:00:00");const now=new Date();const n=Math.ceil((dep-new Date(now.getFullYear(),now.getMonth(),now.getDate()))/864e5);
+  $("#cd").textContent=n>0?n:(n>-6?"出發中":"已回家");
+  render();
+})();
+</script>
+</body>
+</html>
