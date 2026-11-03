@@ -146,6 +146,23 @@ header.top .tt{min-width:0}
 .morebtn small{display:block;font-weight:400;font-size:13px;color:var(--muted)}
 .morebtn svg{width:24px;height:24px;flex:0 0 24px;fill:none;stroke:var(--tang);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .swipehint{display:none}
+/* edit button: always obvious */
+.editwrap{position:relative}
+.editsw{display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none;background:var(--tang);color:#fff;border:0;border-radius:99px;
+  padding:8px 16px;font-size:15px;font-weight:700;box-shadow:0 2px 8px color-mix(in srgb,var(--tang) 40%,transparent);white-space:nowrap}
+.editsw:hover{filter:brightness(1.05)}
+.editsw input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.editsw:has(input:focus-visible){outline:2px solid var(--ink);outline-offset:2px}
+.editsw svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.editsw.on{background:var(--ink);color:var(--paper);box-shadow:none}
+.editsw.off{opacity:.45;cursor:not-allowed;box-shadow:none}
+.edittip{position:absolute;right:0;top:calc(100% + 10px);background:var(--ink);color:var(--paper);font-size:13px;font-weight:700;padding:7px 12px;border-radius:8px;white-space:nowrap;z-index:11;animation:tipbob 1.6s ease-in-out infinite}
+.edittip::before{content:"";position:absolute;right:22px;top:-6px;border:6px solid transparent;border-top:0;border-bottom-color:var(--ink)}
+@keyframes tipbob{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+.editbar{display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--paper);border-radius:10px;padding:9px 12px 9px 14px;font-size:14px}
+.editbar b{color:var(--tang)}
+.editbar span{flex:1;min-width:0}
+.editbar .btn{background:var(--tang);border-color:var(--tang);color:#fff;padding:6px 14px}
 
 /* ---------- phone layout ---------- */
 @media (max-width:720px){
@@ -160,11 +177,11 @@ header.top .tt{min-width:0}
   .facts{font-size:12px;margin-top:0;gap:0 8px;flex-wrap:nowrap;overflow:hidden;white-space:nowrap}
   .facts span:nth-child(n+3){display:none}
   .topright{gap:10px}
-  .count{flex-direction:row;align-items:baseline;gap:2px}
+  .count{flex-direction:row;flex-wrap:nowrap;max-width:none;align-items:baseline;gap:2px;white-space:nowrap}
   .count .lbl{display:none}
   .count b{font-size:22px}
-  .editsw{border:1px solid var(--line);border-radius:99px;padding:5px 10px;background:var(--card);font-size:13px;gap:6px}
-  .editsw input{width:16px;height:16px}
+  .editsw{padding:8px 13px;font-size:14px;gap:5px}
+  .editbar{font-size:13px}
   /* bottom tab bar */
   nav.bar{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:10;background:var(--card);border-top:1px solid var(--line);border-bottom:0;
     padding:4px max(8px,env(safe-area-inset-right,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));justify-content:center}
@@ -275,7 +292,10 @@ footer{font-size:12px;color:var(--muted)}
     <div class="tt"><h1 id="title">濟州島家族旅行</h1><div class="facts" id="facts"></div></div>
     <div class="topright">
       <div class="count"><span class="lbl muted small">距離出發</span><b id="cd">–</b><span class="muted unit">天</span></div>
-      <label class="editsw" id="editsw"><input type="checkbox" id="editmode"><span>編輯</span></label>
+      <div class="editwrap">
+        <label class="editsw" id="editsw"><input type="checkbox" id="editmode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg><span id="edit-lbl">編輯行程</span></label>
+        <div class="edittip" id="edittip" hidden>想改行程？點這裡</div>
+      </div>
     </div>
   </header>
   <div id="banner"></div>
@@ -403,6 +423,9 @@ function render(){
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.view===S.view||(b.dataset.view==="more"&&["todo","log"].includes(S.view)))));
   ls.set("jeju-view",JSON.stringify({view:S.view,day:S.day}));
   const sw=$("#editmode");sw.checked=S.edit;sw.disabled=!!S.alt;
+  $("#editsw").className="editsw"+(S.alt?" off":editable()?" on":"");
+  $("#edit-lbl").textContent=editable()?"完成":"編輯行程";
+  $("#edittip").hidden=!!(S.alt||S.edit||ls.get("jeju-edit-seen"));
   document.body.classList.toggle("edit",editable());
   renderBanner(D);
   const main=$("#main");const keepX=main.querySelector(".board")?.scrollLeft||0;
@@ -420,6 +443,9 @@ function render(){
 }
 function renderBanner(D){
   const box=$("#banner");box.replaceChildren();
+  if(editable())box.append(h("div",{class:"editbar"},h("span",{},h("b",{},"編輯中　"),"按住卡片左邊的點點拖曳，點卡片可以修改"),
+    h("button",{class:"btn",onclick:()=>{S.edit=false;render()}},"完成")));
+  box.style.cssText="display:flex;flex-direction:column;gap:8px";
   const list=()=>S.showChanges&&D.out.length?h("ol",{class:"changes"},D.out.map(c=>h("li",{class:c.t},c.x))):null;
   const toggle=()=>h("button",{class:"btn ghost",onclick:()=>{S.showChanges=!S.showChanges;render()}},S.showChanges?"收起變更":"看變更（"+D.out.length+"）");
   if(S.alt){
@@ -1144,7 +1170,7 @@ async function makeImage(){
 $("#btn-xlsx").addEventListener("click",()=>{try{exportXlsx()}catch(e){console.error(e);toast("匯出失敗："+e.message)}});
 $("#btn-img").addEventListener("click",()=>{makeImage().catch(e=>{console.error(e);toast("產生圖片失敗")})});
 document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>{S.view=b.dataset.view;render();scrollTo({top:0})}));
-$("#editmode").addEventListener("change",e=>{S.edit=e.target.checked;render()});
+$("#editmode").addEventListener("change",e=>{S.edit=e.target.checked;ls.set("jeju-edit-seen","1");render()});
 /* swipe left/right on the day view to change day (phone) */
 (()=>{let sx=0,sy=0,ok=false;const main=$("#main");
   main.addEventListener("touchstart",e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY;
