@@ -735,13 +735,20 @@ function ghCfg(){
 function b64(str){const bytes=new TextEncoder().encode(str);let bin="";for(let i=0;i<bytes.length;i+=8192)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+8192));return btoa(bin)}
 function openSave(){
   const g=ghCfg();const D=currentDiff();
-  const remember=h("input",{type:"checkbox",id:"f-rem"});remember.checked=!!ls.get(LS_TOKEN);
+  const has=!!ls.get(LS_TOKEN);
+  const remember=h("input",{type:"checkbox",id:"f-rem"});remember.checked=true;
   openDlg(h("h3",{},"存到 GitHub"),
-    h("p",{class:"note",style:"margin:0"},"存進去就是新的正式版本，GitHub 會留下紀錄，之後在「修改紀錄」看得到、也能還原。需要有這個 repo 寫入權限的 token（通常只有管理的人有）。"),
-    h("div",{class:"two"},field("帳號 owner","f-owner",g.owner),field("Repo","f-repo",g.repo)),
-    h("div",{class:"two"},field("分支","f-branch",g.branch),field("檔案路徑","f-path",g.path)),
-    field("GitHub token","f-token",ls.get(LS_TOKEN)||"",{type:"password",ph:"github_pat_…"}),
-    h("label",{class:"check"},remember,"記住在這台裝置"),
+    h("p",{class:"note",style:"margin:0"},"存進去就是新的正式版本，「修改紀錄」會留一筆，之後也能還原。"),
+    has?null:h("div",{class:"banner draft",style:"gap:8px"},
+      h("b",{},"這台裝置還沒有存檔用的 token"),
+      h("div",{class:"small"},"只有管理行程的人需要 token。如果你是家人，用分享連結把修改傳給管理的人就好。"),
+      h("div",{class:"row"},h("button",{type:"button",class:"btn tang",onclick:()=>{dlg.close();openShare()}},"改用分享連結"),
+        h("a",{class:"btn ghost",href:"https://github.com/settings/personal-access-tokens/new",target:"_blank",rel:"noopener",style:"text-decoration:none"},"我是管理的人，去產生 token"))),
+    field("GitHub token（貼上 github_pat_ 開頭的那一串）","f-token",ls.get(LS_TOKEN)||"",{type:"password",ph:"在這裡貼上 token"}),
+    h("label",{class:"check"},remember,"記住在這台裝置，下次不用再貼"),
+    h("details",{},h("summary",{class:"small muted",style:"cursor:pointer"},"進階：存到哪個 repo（通常不用改）"),
+      h("div",{class:"two",style:"margin-top:8px"},field("帳號 owner","f-owner",g.owner),field("Repo","f-repo",g.repo)),
+      h("div",{class:"two"},field("分支","f-branch",g.branch),field("檔案路徑","f-path",g.path))),
     field("這次改了什麼（會留在紀錄裡）","f-cmsg",D.out.slice(0,3).map(c=>c.x).join("；")||"更新行程",{area:1,rows:2}),
     h("div",{id:"save-out",class:"small"}),
     h("div",{class:"acts"},h("button",{type:"button",class:"btn ghost left",onclick:downloadJson},"改成下載 trip.json"),
@@ -750,9 +757,11 @@ function openSave(){
 async function doSave(){
   const cfg={owner:v("f-owner"),repo:v("f-repo"),branch:v("f-branch")||"main",path:v("f-path")};
   const token=v("f-token"),msg=v("f-cmsg")||"更新行程";const out=document.getElementById("save-out");const btn=document.getElementById("savebtn");
-  if(!cfg.owner||!cfg.repo||!cfg.path||!token){out.textContent="帳號、repo、路徑和 token 都要填。";return}
+  const say=(t,bad)=>{out.textContent=t;out.style.color=bad?"var(--flag)":"";out.style.fontWeight=bad?"700":""};
+  if(!token){const f=document.getElementById("f-token");f.style.borderColor="var(--flag)";f.focus();say("還沒貼 token，所以沒辦法存。沒有 token 的話，請改用「分享連結」。",true);return}
+  if(!cfg.owner||!cfg.repo||!cfg.path){document.querySelector("dialog details").open=true;say("「進階」裡的帳號、repo、檔案路徑不能空白。",true);return}
   if(document.getElementById("f-rem").checked)ls.set(LS_TOKEN,token);else ls.del(LS_TOKEN);
-  btn.disabled=true;out.textContent="儲存中…";
+  btn.disabled=true;say("儲存中…");
   const api=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${cfg.path}`;
   const hd={Authorization:"Bearer "+token,Accept:"application/vnd.github+json"};
   try{
@@ -763,7 +772,7 @@ async function doSave(){
     if(!r.ok){const t=await r.json().catch(()=>({}));throw new Error(r.status===403||r.status===404?"這個 token 沒有寫入這個 repo 的權限":(t.message||r.status))}
     S.pub=data;S.pubHash=hash(JSON.stringify(data));S.draft=null;saveDraft();S.log=null;dlg.close();S.showChanges=false;render();
     toast("已存到 GitHub。網站大約 1 分鐘後更新，家人重新整理就看得到。");
-  }catch(e){out.textContent="沒有存成功："+e.message;btn.disabled=false}
+  }catch(e){say("沒有存成功："+(e.message==="Failed to fetch"?"連不到 GitHub，檢查一下網路":e.message),true);btn.disabled=false}
 }
 function downloadJson(){
   const data=S.draft||S.pub;saveBlob(new Blob([JSON.stringify(data,null,1)+"\n"],{type:"application/json"}),"trip.json");
