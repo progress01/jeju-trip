@@ -418,8 +418,11 @@ function currentDiff(){if(S.alt)return diff(S.pub,S.alt.data);if(S.draft)return 
 function render(){
   const data=shown();const D=currentDiff();
   $("#title").textContent=data.trip.title;
-  $("#facts").replaceChildren(h("span",{style:"font-family:var(--f-mono)"},data.trip.start.replaceAll("-",".")+" – "+data.trip.end.slice(5).replace("-",".")),...(data.trip.facts||[]).map(f=>h("span",{},f)));
-  $("#footer").textContent=data.trip.footer||"";
+  $("#facts").replaceChildren(...(data.trip.facts||[]).map(f=>h("span",{},f)));
+  $("#footer").replaceChildren(data.trip.footer||"","　",h("button",{class:"chip",onclick:()=>{
+    const inp=h("input",{type:"date",id:"f-start2"});inp.value=ls.get(LS_START)||"";
+    openDlg(h("h3",{},"設定出發日"),h("p",{class:"note",style:"margin:0"},"只存在這台裝置，不會放到網站上。設了就會顯示倒數，旅行中打開會直接跳到當天。"),h("label",{},"出發日（Day 1）",inp),
+      h("div",{class:"acts"},h("button",{class:"btn ghost",value:"cancel"},"取消"),h("button",{type:"button",class:"btn tang",onclick:()=>{if(inp.value)ls.set(LS_START,inp.value);else ls.del(LS_START);dlg.close();updateCountdown()}},"儲存")))}},"設定出發日（只存在這台裝置）"));
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.view===S.view||(b.dataset.view==="more"&&["todo","log"].includes(S.view)))));
   ls.set("jeju-view",JSON.stringify({view:S.view,day:S.day}));
   const sw=$("#editmode");sw.checked=S.edit;sw.disabled=!!S.alt;
@@ -544,6 +547,9 @@ function renderMore(data){
     row("img","行程長圖","整趟行程一張圖，傳到 LINE 給長輩看",()=>makeImage().catch(()=>toast("產生圖片失敗"))),
     row("xlsx","匯出 Excel","跟原本總表一樣的格式",()=>{try{exportXlsx()}catch(e){toast("匯出失敗")}}),
     S.draft&&!S.alt?row("share","分享我的修改","產生連結貼到 LINE",openShare):null,
+    (()=>{const inp=h("input",{type:"date",id:"f-start",style:"max-width:180px"});inp.value=ls.get(LS_START)||"";
+      inp.addEventListener("change",()=>{if(inp.value)ls.set(LS_START,inp.value);else ls.del(LS_START);updateCountdown();toast(inp.value?"已設定，只存在這台裝置":"已清除")});
+      return h("div",{class:"morebtn",style:"cursor:default;flex-wrap:wrap"},svgIcon("log"),h("span",{style:"flex:1;min-width:180px"},"出發日",h("small",{},"只存在這台裝置，不會公開。設了就有倒數，旅行中打開會直接跳到當天")),inp)})(),
     S.draft&&!S.alt?row("save","存到 GitHub","變成正式版本（需要 token）",openSave):null,
     h("p",{class:"small muted",style:"margin:4px 2px"},data.trip.footer||""));
 }
@@ -1126,6 +1132,13 @@ function exportXlsx(){
   return blob;
 }
 function isAnyPending(data){return data.days.some(isPending)}
+/* departure date: kept only on this device, so the public site never shows real dates */
+const LS_START="jeju-start";
+function localStart(){const s=ls.get(LS_START)||(S.pub&&S.pub.trip.start)||"";return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:""}
+function daysToStart(){const s=localStart();if(!s)return null;const now=new Date();return Math.round((new Date(s+"T00:00:00")-new Date(now.getFullYear(),now.getMonth(),now.getDate()))/864e5)}
+function updateCountdown(){const n=daysToStart();const c=document.querySelector(".count");if(n==null){c.hidden=true;return}c.hidden=false;
+  const len=shown().days.length;$("#cd").textContent=n>0?n:(-n<len?"Day "+(1-n):"已回家");
+  c.querySelector(".unit").hidden=!(n>0);c.querySelector(".lbl").textContent=n>0?"距離出發":-n<len?"旅行中":"";}
 function saveBlob(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=name;a.style.display="none";document.body.append(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},4000)}
 
 /* ================= one-page image ================= */
@@ -1138,9 +1151,7 @@ async function makeImage(){
   const text=(t,X,Y,font,col)=>{x.font=font;x.fillStyle=col;x.fillText(t,X,Y)};
   let y=P;
   text(data.trip.title,P,y,`700 72px ${FD}`,C.ink);y+=92;
-  text(data.trip.start.replaceAll("-",".")+" – "+data.trip.end.slice(5).replace("-","."),P,y,`500 30px ${FM}`,C.tang);
-  x.font=`500 30px ${FM}`;const dw=x.measureText(data.trip.start.replaceAll("-",".")+" – "+data.trip.end.slice(5).replace("-",".")).width;
-  text("　"+(data.trip.facts||[]).join("・"),P+dw,y,`400 28px ${FB}`,C.muted);y+=60;
+  text((data.trip.facts||[]).join("・"),P,y,`500 30px ${FB}`,C.tang);y+=60;
   for(const d of data.days){
     const y0=y;y+=28;
     text(d.date+"（"+d.dow+"）",P+28,y,`500 28px ${FM}`,C.tang);
@@ -1199,11 +1210,9 @@ window.addEventListener("hashchange",()=>{const p=readProposal();if(p){S.alt=p;r
   // first view: remembered one, else phone → day view (today's date during the trip), desktop → board
   try{const sv=JSON.parse(ls.get("jeju-view")||"null");if(sv&&sv.view){S.view=sv.view;S.day=sv.day}}catch(e){}
   if(!ls.get("jeju-view")&&matchMedia("(max-width:720px)").matches)S.view="day";
-  {const now=new Date();const md=String(now.getMonth()+1).padStart(2,"0")+"/"+String(now.getDate()).padStart(2,"0");
-   const today=shown().days.find(d=>d.date===md);if(today&&now.getFullYear()===+S.pub.trip.start.slice(0,4)){S.day=today.id;if(S.view!=="map")S.view="day"}}
+  {const n=daysToStart();if(n!=null&&n<=0&&-n<shown().days.length){S.day=shown().days[-n].id;if(S.view!=="map")S.view="day"}}
   if(!matchMedia("(max-width:720px)").matches&&S.view==="more")S.view="board";
-  const dep=new Date(S.pub.trip.start+"T00:00:00");const now=new Date();const n=Math.ceil((dep-new Date(now.getFullYear(),now.getMonth(),now.getDate()))/864e5);
-  $("#cd").textContent=n>0?n:(n>-6?"出發中":"已回家");
+  updateCountdown();
   render();
 })();
 </script>
